@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>What Would Happen If People Actually Voted Instead of Staying Home</title>
+    
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+
+    <style>
+        :root {
+            --blue: #1d4ed8;     
+            --red: #b91c1c;      
+            --yellow: #f59e0b;   
+            --white: #e5e7eb;    
+            
+            --bg-color: #f3f4f6;       
+            --panel-bg: #ffffff;       
+            --text-dark: #111827;      
+            --text-muted: #6b7280;     
+            --text-light: #ffffff;     
+            --border-color: #d1d5db;   
+        }
+
+        body {
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-color); color: var(--text-dark);
+            display: flex; height: 100vh; overflow: hidden; 
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 260px; background-color: var(--panel-bg); border-right: 1px solid var(--border-color);
+            padding: 25px 20px; display: flex; flex-direction: column; gap: 15px; z-index: 10; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.03); overflow-y: auto;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 0.80em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+        .name-input { padding: 8px; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; font-weight: bold; text-align: center; font-size: 1em;}
+        .name-input.blue { background-color: var(--blue); color: var(--text-light); }
+        .name-input.red { background-color: var(--red); color: var(--text-light); }
+        .name-input.yellow { background-color: var(--yellow); color: var(--text-dark); }
+        
+        .toggle-container { background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85em; }
+        .toggle-container label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-dark); font-weight: 500; }
+        
+        /* Summary Box */
+        .summary-container { background: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.9em; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);}
+        .summary-title { font-weight: 800; margin-bottom: 10px; text-align: center; text-transform: uppercase; font-size: 0.8em; color: var(--text-dark); letter-spacing: 0.5px;}
+        .summary-line { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600;}
+        .summary-total { border-top: 2px solid var(--border-color); margin-top: 8px; padding-top: 8px; font-weight: 800; display: flex; justify-content: space-between; color: var(--text-dark);}
+
+        /* Sidebar Buttons */
+        #sidebar button { 
+            padding: 10px; background-color: #f9fafb; color: var(--text-dark); 
+            border: 1px solid var(--border-color); cursor: pointer; border-radius: 6px; 
+            font-weight: bold; transition: all 0.2s; font-size: 0.9em;
+        }
+        #sidebar button:hover { background-color: #e5e7eb; }
+        #flipAllBlueBtn { border-color: rgba(29,78,216,0.3); color: var(--blue); }
+        #flipAllBlueBtn:hover { background-color: #eff6ff !important; }
+        #minShiftBlueBtn { border-color: var(--blue); color: var(--text-light); background-color: var(--blue); margin-top: auto;}
+        #minShiftBlueBtn:hover { background-color: #1e40af !important; }
+
+        /* --- MAIN & HEADER --- */
+        #main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-color); }
+        #header-area { padding: 15px 20px 5px 20px; text-align: center; }
+        #main-title { margin: 0; font-size: 1.4em; font-weight: 800; color: var(--text-dark); }
+        #overall-winner { margin: 5px 0 0 0; font-size: 1.1em; color: var(--text-muted); }
+
+        /* --- RIBBON --- */
+        #ribbon {
+            height: 40px; flex-shrink: 0; display: flex; background: var(--panel-bg);
+            margin: 10px 40px; border-radius: 6px; border: 1px solid var(--border-color);
+            overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: crosshair;
+        }
+        .ribbon-segment {
+            height: 100%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.1em; overflow: hidden; white-space: nowrap; transition: width 0.3s ease; color: var(--text-light);
+        }
+        .ribbon-segment.seg-yellow, .ribbon-segment.seg-white { color: var(--text-dark); }
+
+        /* --- MAP --- */
+        #map-container {
+            flex-shrink: 0; height: 38vh; padding: 10px 40px; background-color: var(--bg-color);
+            display: flex; justify-content: center; align-items: center;
+        }
+        #us-map { width: 100%; height: 100%; max-height: 100%; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1)); }
+        .state-path { stroke: #ffffff; stroke-width: 1.2; transition: fill 0.3s, stroke-width 0.2s; cursor: pointer; }
+        .state-path:hover { stroke: #000000; stroke-width: 2.5; }
+
+        /* --- TOOLTIP --- */
+        #tooltip {
+            position: absolute; display: none; flex-direction: column; pointer-events: none;
+            border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            z-index: 100; font-size: 14px; background: var(--panel-bg); overflow: hidden;
+        }
+        #tt-line1 { background-color: var(--bg-color); padding: 8px 12px; font-weight: bold; text-align: center; border-bottom: 1px solid var(--border-color); }
+        #tt-candidates { display: flex; flex-direction: column; padding: 5px; gap: 2px; }
+        .tt-badge { padding: 6px 12px; font-weight: bold; border-radius: 4px; }
+
+        /* --- TABLE --- */
+        #table-container {
+            flex-grow: 1; overflow-y: auto; padding: 10px 40px 30px 40px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .state-row {
+            display: grid; 
+            grid-template-columns: 24px 140px 190px 120px 60px 1fr; 
+            align-items: center; gap: 15px;
+            background: var(--panel-bg); padding: 12px 16px; border-radius: 8px;
+            border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .winner-indicator { width: 24px; height: 24px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); background-color: var(--bg-color); transition: background 0.3s; }
+        .state-name { font-weight: 600; }
+        .state-ev { color: var(--text-muted); font-size: 0.85em; }
+        
+        .fixed-votes, .mob-votes { font-size: 0.85em; font-weight: 600; background: #f8f9fa; padding: 6px 10px; border-radius: 4px; border: 1px solid #e9ecef; display: flex; flex-direction: column; gap: 4px; }
+        .mob-votes { background: #ffffff; border-color: rgba(0,0,0,0.05); }
+        .vote-line { display: flex; justify-content: space-between; gap: 10px; }
+        
+        /* Per-State Mini Buttons */
+        .state-actions { display: flex; flex-direction: column; gap: 5px; }
+        .btn-mini { font-size: 0.7em; font-weight: bold; padding: 5px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-color); background: #f9fafb; color: var(--text-dark); transition: all 0.2s;}
+        .btn-mini:hover { background: #e5e7eb; }
+        .btn-mini.blue-btn { color: var(--blue); border-color: rgba(29,78,216,0.3); }
+        .btn-mini.blue-btn:hover { background: #eff6ff; }
+        .btn-mini:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        /* The DNV Slider */
+        .slider-container { position: relative; height: 28px; border-radius: 14px; background: var(--border-color); display: flex; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .slider-segment { position: absolute; height: 100%; top: 0; }
+        .seg-blue { background-color: var(--blue); left: 0; z-index: 1; }
+        .seg-white { background-color: var(--white); z-index: 0; }
+        .seg-red { background-color: var(--red); right: 0; z-index: 1; }
+        
+        .slider-handle { position: absolute; top: 0; width: 14px; height: 28px; background: #ffffff; border: 2px solid #9ca3af; cursor: ew-resize; transform: translateX(-7px); z-index: 2; border-radius: 4px; box-shadow: -1px 0 4px rgba(0,0,0,0.15); }
+        .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f9fafb; }
+    </style>
+
+    <script>
+        // CORE DATA LOADED DIRECTLY
+        const rawData2024 = {
+            "Alabama": [9, 776000, 0, 1604000, 1471000], "Alaska": [3, 138000, 0, 207000, 189000],
+            "Arizona": [11, 1550000, 0, 2078000, 1760000], "Arkansas": [6, 399000, 0, 1061000, 764000],
+            "California": [54, 8700000, 0, 11608000, 5700000], "Colorado": [10, 1685000, 0, 1418000, 1328000],
+            "Connecticut": [7, 954000, 0, 927000, 785000], "Delaware": [3, 285000, 0, 263000, 225000],
+            "District of Columbia": [3, 282000, 0, 213000, 22000], "Florida": [30, 4680000, 0, 5704000, 6110000],
+            "Georgia": [16, 2545000, 0, 2555000, 2660000], "Hawaii": [4, 306000, 0, 523000, 209000],
+            "Idaho": [4, 276000, 0, 563000, 607000], "Illinois": [19, 3115000, 0, 3480000, 2425000],
+            "Indiana": [11, 1175000, 0, 2160000, 1735000], "Iowa": [6, 707000, 0, 731000, 927000],
+            "Kansas": [6, 544000, 0, 825000, 758000], "Kentucky": [8, 704000, 0, 1322000, 1337000],
+            "Louisiana": [8, 766000, 0, 1350000, 1208000], "Maine": [4, 435000, 0, 294000, 405000],
+            "Maryland": [10, 1900000, 0, 1469000, 1050000], "Massachusetts": [11, 2150000, 0, 1793000, 1220000],
+            "Michigan": [15, 2725000, 0, 2114000, 2805000], "Minnesota": [10, 1656000, 0, 1110000, 1519000],
+            "Mississippi": [6, 461000, 0, 961000, 754000], "Missouri": [10, 1190000, 0, 1732000, 1740000],
+            "Montana": [4, 228000, 0, 322000, 347000], "Nebraska": [5, 364000, 0, 497000, 560000],
+            "Nevada": [6, 700000, 0, 820000, 740000], "New Hampshire": [4, 415000, 0, 317000, 390000],
+            "New Jersey": [14, 2250000, 0, 2278000, 1900000], "New Mexico": [5, 485000, 0, 674000, 405000],
+            "New York": [28, 4400000, 0, 6017000, 3450000], "North Carolina": [16, 2685000, 0, 2580000, 2875000],
+            "North Dakota": [3, 111000, 0, 201000, 245000], "Ohio": [17, 2475000, 0, 3150000, 3115000],
+            "Oklahoma": [7, 495000, 0, 1350000, 1030000], "Oregon": [8, 1350000, 0, 778000, 1010000],
+            "Pennsylvania": [19, 3420000, 0, 2780000, 3540000], "Rhode Island": [4, 265000, 0, 342000, 195000],
+            "South Carolina": [9, 1005000, 0, 1540000, 1450000], "South Dakota": [3, 143000, 0, 225000, 265000],
+            "Tennessee": [11, 1040000, 0, 2380000, 1940000], "Texas": [40, 4800000, 0, 9800000, 6375000],
+            "Utah": [6, 525000, 0, 845000, 820000], "Vermont": [3, 235000, 0, 165000, 115000],
+            "Virginia": [13, 2225000, 0, 1935000, 1950000], "Washington": [12, 2250000, 0, 1840000, 1550000],
+            "West Virginia": [4, 213000, 0, 612000, 535000], "Wisconsin": [10, 1665000, 0, 1034000, 1695000],
+            "Wyoming": [3, 69000, 0, 165000, 192000]
+        };
+    </script>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="input-group"><label>Blue Candidate</label><input type="text" id="nameBlue" class="name-input blue" value="Harris"></div>
+    <div class="input-group"><label>Yellow Candidate</label><input type="text" id="nameYellow" class="name-input yellow" value="Other"></div>
+    <div class="input-group"><label>Red Candidate</label><input type="text" id="nameRed" class="name-input red" value="Trump"></div>
+    
+    <div class="toggle-container"><label><input type="checkbox" id="toggleDNV"> Consider 'Did Not Vote' as candidate</label></div>
+    
+    <div class="summary-container">
+        <div class="summary-title">Mobilized DNV Voters</div>
+        <div class="summary-line"><span style="color: var(--blue);">To Blue:</span> <span id="sum-mob-b">0</span></div>
+        <div class="summary-line"><span style="color: var(--red);">To Red:</span> <span id="sum-mob-r">0</span></div>
+        <div class="summary-total"><span>Total:</span> <span id="sum-mob-total">0</span></div>
+    </div>
+
+    <button id="minShiftBlueBtn">Min Flip to Blue</button>
+    <button id="flipAllBlueBtn">Flip ALL Red to Blue</button>
+    <button id="resetBtn">Reset to Actual 2024</button>
+</div>
+
+<div id="main">
+    <div id="header-area">
+        <h1 id="main-title">What Would Happen If People Actually Voted Instead of Staying Home</h1>
+        <h2 id="overall-winner">Current Winner: Calculating...</h2>
+    </div>
+
+    <div id="ribbon">
+        <div id="rib-blue" class="ribbon-segment seg-blue"></div>
+        <div id="rib-yellow" class="ribbon-segment seg-yellow"></div>
+        <div id="rib-white" class="ribbon-segment seg-white"></div>
+        <div id="rib-red" class="ribbon-segment seg-red"></div>
+    </div>
+    
+    <div id="map-container">
+        <svg id="us-map" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <pattern id="hatch-split" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                    <rect width="8" height="8" fill="var(--blue)"/><rect width="4" height="8" fill="var(--red)"/>
+                </pattern>
+            </defs>
+            <g id="states-group"></g>
+        </svg>
+    </div>
+
+    <div id="table-container"></div>
+</div>
+
+<div id="tooltip"><div id="tt-line1"></div><div id="tt-candidates"></div></div>
+
+<script>
+    let appState = {};
+    const splitStates = ["Maine", "Nebraska"];
+    const colors = { blue: 'var(--blue)', yellow: 'var(--yellow)', white: 'var(--white)', red: 'var(--red)' };
+    let dnvIsCandidate = false;
+
+    function initData() {
+        for (const [state, data] of Object.entries(rawData2024)) {
+            const [ev, b, y, w, r] = data;
+            appState[state] = {
+                ev: ev,
+                baseB: b, baseY: y, baseW: w, baseR: r,
+                pLeft: 0, pRight: 1, 
+                evAlloc: { blue: 0, yellow: 0, white: 0, red: 0 }
+            };
+        }
+    }
+
+    function renderTable() {
+        const container = document.getElementById('table-container');
+        container.innerHTML = '';
+
+        Object.keys(appState).sort().forEach(stateName => {
+            const s = appState[stateName];
+            const safeId = stateName.replace(/\s+/g, '-');
+            const isSplit = splitStates.includes(stateName);
+            
+            const castTotal = s.baseB + s.baseY + s.baseR;
+            const pctB = castTotal > 0 ? ((s.baseB / castTotal) * 100).toFixed(1) : 0;
+            const pctR = castTotal > 0 ? ((s.baseR / castTotal) * 100).toFixed(1) : 0;
+            const fmtB = s.baseB.toLocaleString();
+            const fmtR = s.baseR.toLocaleString();
+
+            const row = document.createElement('div');
+            row.className = 'state-row';
+            row.innerHTML = `
+                <div class="winner-indicator" id="win-ind-${safeId}"></div>
+                <div>
+                    <div class="state-name">${stateName}</div>
+                    <div class="state-ev" id="ev-label-${safeId}"></div>
+                </div>
+                <div class="fixed-votes">
+                    <div class="vote-line"><span style="color: var(--blue)">Blue:</span> <span>${fmtB} (${pctB}%)</span></div>
+                    <div class="vote-line"><span style="color: var(--red)">Red:</span> <span>${fmtR} (${pctR}%)</span></div>
+                </div>
+                <div class="mob-votes">
+                    <div class="vote-line"><span style="color: var(--blue)">Mob B:</span> <span id="mob-b-${safeId}">+0</span></div>
+                    <div class="vote-line"><span style="color: var(--red)">Mob R:</span> <span id="mob-r-${safeId}">+0</span></div>
+                </div>
+                <div class="state-actions">
+                    <button class="btn-mini blue-btn" id="btn-blue-${safeId}" ${isSplit ? 'disabled title="N/A for split states"' : ''}>BLUE</button>
+                    <button class="btn-mini" id="btn-reset-${safeId}">RESET</button>
+                </div>
+                <div class="slider-container" id="slider-${safeId}">
+                    <div class="slider-segment seg-blue"></div>
+                    <div class="slider-segment seg-white"></div>
+                    <div class="slider-segment seg-red"></div>
+                    <div class="slider-handle h1"></div>
+                    <div class="slider-handle h2"></div>
+                </div>
+            `;
+            container.appendChild(row);
+
+            const sliderContainer = row.querySelector('.slider-container');
+            updateSliderDOM(stateName, sliderContainer);
+            bindSliderPhysics(stateName, sliderContainer);
+
+            // Per-State Button Listeners
+            document.getElementById(`btn-reset-${safeId}`).addEventListener('click', () => {
+                s.pLeft = 0; s.pRight = 1;
+                updateSliderDOM(stateName, sliderContainer);
+                updateCalculations();
+            });
+
+            document.getElementById(`btn-blue-${safeId}`).addEventListener('click', () => {
+                if (isSplit) return;
+                s.pRight = 1; 
+                if (s.baseR >= s.baseB) {
+                    const votesNeededToWin = (s.baseR - s.baseB) + 1;
+                    s.pLeft = s.baseW > 0 ? Math.min(1, votesNeededToWin / s.baseW) : 0;
+                } else {
+                    s.pLeft = 0; 
+                }
+                updateSliderDOM(stateName, sliderContainer);
+                updateCalculations();
+            });
+        });
+    }
+
+    function updateSliderDOM(stateName, container) {
+        const s = appState[stateName];
+        container.querySelector('.seg-blue').style.width = `${s.pLeft * 100}%`;
+        const whiteSeg = container.querySelector('.seg-white');
+        whiteSeg.style.left = `${s.pLeft * 100}%`;
+        whiteSeg.style.width = `${(s.pRight - s.pLeft) * 100}%`;
+        container.querySelector('.seg-red').style.width = `${(1 - s.pRight) * 100}%`;
+        container.querySelector('.h1').style.left = `${s.pLeft * 100}%`;
+        container.querySelector('.h2').style.left = `${s.pRight * 100}%`;
+    }
+
+    function bindSliderPhysics(stateName, container) {
+        const h1 = container.querySelector('.h1');
+        const h2 = container.querySelector('.h2');
+        let activeHandle = null;
+
+        h1.addEventListener('mousedown', () => { activeHandle = 1; document.body.style.cursor = 'ew-resize'; });
+        h2.addEventListener('mousedown', () => { activeHandle = 2; document.body.style.cursor = 'ew-resize'; });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!activeHandle) return;
+            const rect = container.getBoundingClientRect();
+            let percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const s = appState[stateName];
+
+            if (activeHandle === 1) s.pLeft = Math.min(percent, s.pRight);
+            else if (activeHandle === 2) s.pRight = Math.max(percent, s.pLeft);
+            
+            updateSliderDOM(stateName, container);
+            updateCalculations();
+        });
+
+        window.addEventListener('mouseup', () => { activeHandle = null; document.body.style.cursor = 'default'; });
+    }
+
+    function renderMap() {
+        d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json").then(us => {
+            d3.select("#states-group").selectAll("path")
+                .data(topojson.feature(us, us.objects.states).features)
+                .enter().append("path").attr("class", "state-path").attr("d", d3.geoPath())
+                .attr("id", d => `map-${d.properties.name.replace(/\s+/g, '-')}`)
+                .on("mousemove", showTooltip).on("mouseout", hideTooltip);
+            updateCalculations(); 
+        });
+    }
+
+    function updateCalculations() {
+        let totals = { blue: 0, yellow: 0, white: 0, red: 0 };
+        let globalMobB = 0;
+        let globalMobR = 0;
+
+        for (const [stateName, s] of Object.entries(appState)) {
+            const safeId = stateName.replace(/\s+/g, '-');
+            s.evAlloc = { blue: 0, yellow: 0, white: 0, red: 0 };
+
+            // Calculate active and mobilized votes
+            let mobilizedB = s.baseW * s.pLeft;
+            let mobilizedR = s.baseW * (1 - s.pRight);
+            
+            globalMobB += mobilizedB;
+            globalMobR += mobilizedR;
+
+            let activeB = s.baseB + mobilizedB;
+            let activeR = s.baseR + mobilizedR;
+            let activeW = s.baseW - mobilizedB - mobilizedR;
+            let activeY = s.baseY;
+
+            // Update UI for state mobilized votes
+            const lblMobB = document.getElementById(`mob-b-${safeId}`);
+            const lblMobR = document.getElementById(`mob-r-${safeId}`);
+            if (lblMobB) lblMobB.textContent = `+${Math.round(mobilizedB).toLocaleString()}`;
+            if (lblMobR) lblMobR.textContent = `+${Math.round(mobilizedR).toLocaleString()}`;
+
+            if (splitStates.includes(stateName)) {
+                let activeSum = dnvIsCandidate ? (activeB + activeY + activeW + activeR) : (activeB + activeY + activeR);
+                if (activeSum === 0) activeSum = 1;
+
+                let evB = Math.round((activeB / activeSum) * s.ev);
+                let evY = Math.round((activeY / activeSum) * s.ev);
+                let evW = dnvIsCandidate ? Math.round((activeW / activeSum) * s.ev) : 0;
+                let evR = s.ev - (evB + evY + evW);
+                if (evR < 0) { evB += evR; evR = 0; }
+
+                s.evAlloc = { blue: evB, yellow: evY, white: evW, red: evR };
+                d3.select(`#map-${safeId}`).attr("fill", "url(#hatch-split)");
+                
+                const ind = document.getElementById(`win-ind-${safeId}`);
+                if (ind) ind.style.background = `repeating-linear-gradient(45deg, var(--blue), var(--blue) 5px, var(--red) 5px, var(--red) 10px)`;
+            } else {
+                let max = -1, winner = 'white';
+                const cands = [ {id:'blue', val:activeB}, {id:'yellow', val:activeY}, {id:'red', val:activeR} ];
+                if (dnvIsCandidate) cands.push({id:'white', val:activeW});
+
+                cands.forEach(c => { if (c.val > max) { max = c.val; winner = c.id; } });
+                s.evAlloc[winner] = s.ev;
+                d3.select(`#map-${safeId}`).attr("fill", colors[winner]);
+                
+                const ind = document.getElementById(`win-ind-${safeId}`);
+                if (ind) ind.style.background = colors[winner];
+            }
+
+            totals.blue += s.evAlloc.blue; totals.yellow += s.evAlloc.yellow; totals.white += s.evAlloc.white; totals.red += s.evAlloc.red;
+
+            const label = document.getElementById(`ev-label-${safeId}`);
+            if (label) {
+                if (splitStates.includes(stateName)) {
+                    let arr = [];
+                    if(s.evAlloc.blue) arr.push(`${s.evAlloc.blue} B`);
+                    if(s.evAlloc.red) arr.push(`${s.evAlloc.red} R`);
+                    label.textContent = arr.join(' / ');
+                } else { label.textContent = `${s.ev} EV`; }
+            }
+        }
+
+        // Update Global Summary Panel
+        document.getElementById('sum-mob-b').textContent = Math.round(globalMobB).toLocaleString();
+        document.getElementById('sum-mob-r').textContent = Math.round(globalMobR).toLocaleString();
+        document.getElementById('sum-mob-total').textContent = Math.round(globalMobB + globalMobR).toLocaleString();
+
+        // Update Ribbon
+        ['blue', 'yellow', 'white', 'red'].forEach(col => {
+            const seg = document.getElementById(`rib-${col}`);
+            seg.style.width = `${(totals[col] / 538) * 100}%`;
+            seg.textContent = totals[col] > 15 ? totals[col] : ''; 
+        });
+
+        // Determine Overall Winner
+        const bName = document.getElementById('nameBlue').value;
+        const yName = document.getElementById('nameYellow').value;
+        const rName = document.getElementById('nameRed').value;
+        let winText = "No clear winner yet";
+        
+        if (totals.blue >= 270) winText = `<span style="color:var(--blue); font-weight:bold;">${bName} Wins (${totals.blue} EVs)</span>`;
+        else if (totals.red >= 270) winText = `<span style="color:var(--red); font-weight:bold;">${rName} Wins (${totals.red} EVs)</span>`;
+        else if (totals.white >= 270) winText = `<span style="color:var(--text-dark); font-weight:bold;">Did Not Vote Wins (${totals.white} EVs)</span>`;
+        else if (totals.yellow >= 270) winText = `<span style="color:var(--yellow); font-weight:bold; text-shadow: 1px 1px 1px rgba(0,0,0,0.2);">${yName} Wins (${totals.yellow} EVs)</span>`;
+        
+        document.getElementById('overall-winner').innerHTML = winText;
+    }
+
+    // Ribbon Tooltips
+    document.querySelectorAll('.ribbon-segment').forEach(seg => {
+        seg.addEventListener('mousemove', (e) => {
+            const id = seg.id.replace('rib-', '');
+            const nameMap = { blue: document.getElementById('nameBlue').value, yellow: document.getElementById('nameYellow').value, red: document.getElementById('nameRed').value, white: 'Did Not Vote' };
+            let evCount = 0;
+            for (const s of Object.values(appState)) evCount += s.evAlloc[id];
+            
+            document.getElementById('tt-line1').textContent = nameMap[id];
+            document.getElementById('tt-candidates').innerHTML = `<div class="tt-badge" style="background:${colors[id]}; color:${id==='white'||id==='yellow'?'black':'white'};">${evCount} EVs</div>`;
+            document.getElementById('tooltip').style.display = 'flex';
+            document.getElementById('tooltip').style.left = (e.pageX + 15) + 'px';
+            document.getElementById('tooltip').style.top = (e.pageY + 15) + 'px';
+        });
+        seg.addEventListener('mouseout', hideTooltip);
+    });
+
+    const tooltip = document.getElementById('tooltip');
+    function showTooltip(event, d) {
+        const stateName = d.properties.name;
+        const s = appState[stateName];
+        if (!s) return;
+        document.getElementById('tt-line1').textContent = stateName;
+        const cands = document.getElementById('tt-candidates'); cands.innerHTML = '';
+        const createBadge = (n, ev, col) => {
+            if (ev <= 0) return;
+            cands.innerHTML += `<div class="tt-badge" style="background:${colors[col]}; color:${col==='white'||col==='yellow'?'black':'white'}">${n} (${ev})</div>`;
+        };
+        createBadge(document.getElementById('nameBlue').value, s.evAlloc.blue, 'blue');
+        createBadge(document.getElementById('nameYellow').value, s.evAlloc.yellow, 'yellow');
+        createBadge(document.getElementById('nameRed').value, s.evAlloc.red, 'red');
+        createBadge("Did Not Vote", s.evAlloc.white, 'white');
+        tooltip.style.display = 'flex'; tooltip.style.left = (event.pageX + 15) + 'px'; tooltip.style.top = (event.pageY + 15) + 'px';
+    }
+    function hideTooltip() { tooltip.style.display = 'none'; }
+
+    // --- GLOBAL EVENT LISTENERS ---
+    
+    document.getElementById('resetBtn').addEventListener('click', () => { 
+        initData(); renderTable(); updateCalculations(); 
+    });
+    
+    // Original: Flip EVERY Red state to Blue
+    document.getElementById('flipAllBlueBtn').addEventListener('click', () => {
+        for (const [stateName, s] of Object.entries(appState)) {
+            if (splitStates.includes(stateName)) continue; 
+            s.pRight = 1; 
+            if (s.baseR >= s.baseB) {
+                const votesNeededToWin = (s.baseR - s.baseB) + 1;
+                s.pLeft = s.baseW > 0 ? Math.min(1, votesNeededToWin / s.baseW) : 0;
+            } else {
+                s.pLeft = 0; 
+            }
+            updateSliderDOM(stateName, document.getElementById(`slider-${stateName.replace(/\s+/g, '-')}`));
+        }
+        updateCalculations();
+    });
+
+    // New: DP Knapsack Optimization for absolute minimum to reach 270
+    document.getElementById('minShiftBlueBtn').addEventListener('click', () => {
+        // 1. Reset all sliders to base
+        for (const s of Object.values(appState)) { s.pLeft = 0; s.pRight = 1; }
+        updateCalculations();
+
+        // 2. Determine current Blue EVs
+        let blueEVs = 0;
+        for (const s of Object.values(appState)) { blueEVs += s.evAlloc.blue; }
+
+        const target = 270 - blueEVs;
+        if (target <= 0) return; // Already winning
+
+        // 3. Find available Red Winner-Take-All states
+        let flippable = [];
+        for (const [stateName, s] of Object.entries(appState)) {
+            if (splitStates.includes(stateName)) continue; // Skip ME/NE
+            if (s.evAlloc.red > 0) { 
+                const cost = (s.baseR - s.baseB) + 1;
+                if (cost <= s.baseW) { 
+                    flippable.push({ name: stateName, ev: s.evAlloc.red, cost: cost });
+                }
+            }
+        }
+
+        // 4. DP Knapsack (Min Weight to hit target EVs)
+        const maxEVs = flippable.reduce((sum, state) => sum + state.ev, 0);
+        let dp = new Array(maxEVs + 1).fill(Infinity);
+        let selected = new Array(maxEVs + 1).fill(null).map(() => []);
+        dp[0] = 0;
+
+        for (const state of flippable) {
+            for (let j = maxEVs; j >= state.ev; j--) {
+                if (dp[j - state.ev] !== Infinity) {
+                    const newCost = dp[j - state.ev] + state.cost;
+                    if (newCost < dp[j]) {
+                        dp[j] = newCost;
+                        selected[j] = [...selected[j - state.ev], state.name];
+                    }
+                }
+            }
+        }
+
+        // 5. Find the absolute minimum cost to reach or exceed target
+        let minCost = Infinity;
+        let bestSubset = [];
+        for (let j = target; j <= maxEVs; j++) {
+            if (dp[j] < minCost) {
+                minCost = dp[j];
+                bestSubset = selected[j];
+            }
+        }
+
+        // 6. Apply to UI
+        bestSubset.forEach(stateName => {
+            const s = appState[stateName];
+            const cost = (s.baseR - s.baseB) + 1;
+            s.pLeft = cost / s.baseW;
+        });
+
+        for (const stateName of Object.keys(appState)) {
+            updateSliderDOM(stateName, document.getElementById(`slider-${stateName.replace(/\s+/g, '-')}`));
+        }
+        updateCalculations();
+    });
+
+    document.getElementById('toggleDNV').addEventListener('change', (e) => { dnvIsCandidate = e.target.checked; updateCalculations(); });
+    document.querySelectorAll('.name-input').forEach(i => i.addEventListener('input', updateCalculations));
+
+    // Boot
+    initData(); renderTable(); renderMap();
+</script>
+</body>
+</html>
