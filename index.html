@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alienpuppy Labs | Maps</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
+        .container { max-width: 600px; width: 100%; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 0; }
+        p { color: #666; }
+        .menu-list { list-style: none; padding: 0; margin-top: 25px; }
+        .menu-item { margin-bottom: 15px; }
+        .menu-link { 
+            display: flex; 
+            align-items: center; 
+            text-decoration: none; 
+            color: white; 
+            background: var(--primary); 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            transition: transform 0.2s, background 0.2s;
+        }
+        .menu-link:hover { background: var(--accent); transform: translateX(5px); }
+        .icon { margin-right: 15px; font-size: 1.2em; }
+        footer { margin-top: 30px; font-size: 0.8em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📍 Map Collection</h1>
+        <p>Interactive visualizations and calculation tools from the Alienpuppy-Labs workbench.</p>
+        
+        <ul class="menu-list">
+            <li class="menu-item">
+                <a href="electoral-college.html" class="menu-link">
+                    <span class="icon">🗳️</span>
+                    <span>Electoral College Calculator</span>
+                </a>
+            </li>
+            </ul>
+
+        <footer>
+            &copy; 2026 Alienpuppy-Labs | Santa Clara, CA
+        </footer>
+    </div>
+</body>
+</html>
