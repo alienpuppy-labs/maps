@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>What Would Happen If People Actually Voted Instead of Staying Home</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrsQwZ0WwB+2zwh5z8Bcwcz+VK5Ozn73A6//igSifk=" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js" integrity="sha512-4L8H4xOAOze6ZJTRD0UvJ51zS00HNCZ4U8BqQ/2E4zP1oG7+nN+n2K3A/BbnGkUXm2Y0Z4E75M1e/Rbn3Y4A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        :root {
+            --blue: #1d4ed8;     
+            --red: #b91c1c;      
+            --yellow: #f59e0b;   
+            --white: #e5e7eb;    
+            
+            --bg-color: #f3f4f6;       
+            --panel-bg: #ffffff;       
+            --text-dark: #111827;      
+            --text-muted: #6b7280;     
+            --text-light: #ffffff;     
+            --border-color: #d1d5db;   
+        }
+
+        body {
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-color); color: var(--text-dark);
+            display: flex; height: 100vh; overflow: hidden; 
+        }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: 260px; background-color: var(--panel-bg); border-right: 1px solid var(--border-color);
+            padding: 25px 20px; display: flex; flex-direction: column; gap: 15px; z-index: 10; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.03); overflow-y: auto;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 0.80em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+        .name-input { padding: 8px; border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; font-weight: bold; text-align: center; font-size: 1em;}
+        .name-input.blue { background-color: var(--blue); color: var(--text-light); }
+        .name-input.red { background-color: var(--red); color: var(--text-light); }
+        .name-input.yellow { background-color: var(--yellow); color: var(--text-dark); }
+        
+        .toggle-container { background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85em; }
+        .toggle-container label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-dark); font-weight: 500; }
+        
+        /* Summary Box */
+        .summary-container { background: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.9em; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);}
+        .summary-title { font-weight: 800; margin-bottom: 10px; text-align: center; text-transform: uppercase; font-size: 0.8em; color: var(--text-dark); letter-spacing: 0.5px;}
+        .summary-line { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600;}
+        .summary-total { border-top: 2px solid var(--border-color); margin-top: 8px; padding-top: 8px; font-weight: 800; display: flex; justify-content: space-between; color: var(--text-dark);}
+
+        /* Sidebar Buttons */
+        #sidebar button { 
+            padding: 10px; background-color: #f9fafb; color: var(--text-dark); 
+            border: 1px solid var(--border-color); cursor: pointer; border-radius: 6px; 
+            font-weight: bold; transition: all 0.2s; font-size: 0.9em;
+        }
+        #sidebar button:hover { background-color: #e5e7eb; }
+        #flipAllBlueBtn { border-color: rgba(29,78,216,0.3); color: var(--blue); }
+        #flipAllBlueBtn:hover { background-color: #eff6ff !important; }
+        #minShiftBlueBtn { border-color: var(--blue); color: var(--text-light); background-color: var(--blue); margin-top: auto;}
+        #minShiftBlueBtn:hover { background-color: #1e40af !important; }
+
+        /* --- MAIN & HEADER --- */
+        #main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-color); }
+        #header-area { padding: 15px 20px 5px 20px; text-align: center; }
+        #main-title { margin: 0; font-size: 1.4em; font-weight: 800; color: var(--text-dark); }
+        #overall-winner { margin: 5px 0 0 0; font-size: 1.1em; color: var(--text-muted); display: flex; justify-content: center; align-items: center; gap: 5px;}
+
+        /* --- RIBBON --- */
+        #ribbon {
+            height: 40px; flex-shrink: 0; display: flex; background: var(--panel-bg);
+            margin: 10px 40px; border-radius: 6px; border: 1px solid var(--border-color);
+            overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: crosshair;
+        }
+        .ribbon-segment {
+            height: 100%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.1em; overflow: hidden; white-space: nowrap; transition: width 0.3s ease; color: var(--text-light);
+        }
+        .ribbon-segment.seg-yellow, .ribbon-segment.seg-white { color: var(--text-dark); }
+
+        /* --- MAP --- */
+        #map-container {
+            flex-shrink: 0; height: 38vh; padding: 10px 40px; background-color: var(--bg-color);
+            display: flex; justify-content: center; align-items: center;
+        }
+        #us-map { width: 100%; height: 100%; max-height: 100%; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1)); }
+        .state-path { stroke: #ffffff; stroke-width: 1.2; transition: fill 0.3s, stroke-width 0.2s; cursor: pointer; }
+        .state-path:hover { stroke: #000000; stroke-width: 2.5; }
+
+        /* --- TOOLTIP --- */
+        #tooltip {
+            position: absolute; display: none; flex-direction: column; pointer-events: none;
+            border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+            z-index: 100; font-size: 14px; background: var(--panel-bg); overflow: hidden;
+        }
+        #tt-line1 { background-color: var(--bg-color); padding: 8px 12px; font-weight: bold; text-align: center; border-bottom: 1px solid var(--border-color); }
+        #tt-candidates { display: flex; flex-direction: column; padding: 5px; gap: 2px; }
+        .tt-badge { padding: 6px 12px; font-weight: bold; border-radius: 4px; }
+
+        /* --- TABLE --- */
+        #table-container {
+            flex-grow: 1; overflow-y: auto; padding: 10px 40px 30px 40px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .state-row {
+            display: grid; 
+            grid-template-columns: 24px 140px 190px 120px 60px 1fr; 
+            align-items: center; gap: 15px;
+            background: var(--panel-bg); padding: 12px 16px; border-radius: 8px;
+            border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .winner-indicator { width: 24px; height: 24px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); background-color: var(--bg-color); transition: background 0.3s; }
+        .state-name { font-weight: 600; }
+        .state-ev { color: var(--text-muted); font-size: 0.85em; }
+        
+        .fixed-votes, .mob-votes { font-size: 0.85em; font-weight: 600; background: #f8f9fa; padding: 6px 10px; border-radius: 4px; border: 1px solid #e9ecef; display: flex; flex-direction: column; gap: 4px; }
+        .mob-votes { background: #ffffff; border-color: rgba(0,0,0,0.05); }
+        .vote-line { display: flex; justify-content: space-between; gap: 10px; }
+        
+        /* Per-State Mini Buttons */
+        .state-actions { display: flex; flex-direction: column; gap: 5px; }
+        .btn-mini { font-size: 0.7em; font-weight: bold; padding: 5px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-color); background: #f9fafb; color: var(--text-dark); transition: all 0.2s;}
+        .btn-mini:hover { background: #e5e7eb; }
+        .btn-mini.blue-btn { color: var(--blue); border-color: rgba(29,78,216,0.3); }
+        .btn-mini.blue-btn:hover { background: #eff6ff; }
+        .btn-mini:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        /* The DNV Slider */
+        .slider-container { position: relative; height: 28px; border-radius: 14px; background: var(--border-color); display: flex; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .slider-segment { position: absolute; height: 100%; top: 0; }
+        .seg-blue { background-color: var(--blue); left: 0; z-index: 1; }
+        .seg-white { background-color: var(--white); z-index: 0; }
+        .seg-red { background-color: var(--red); right: 0; z-index: 1; }
+        
+        .slider-handle { position: absolute; top: 0; width: 14px; height: 28px; background: #ffffff; border: 2px solid #9ca3af; cursor: ew-resize; transform: translateX(-7px); z-index: 2; border-radius: 4px; box-shadow: -1px 0 4px rgba(0,0,0,0.15); }
+        .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f9fafb; }
+    </style>
+
+    <script src="data.js"></script>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="input-group"><label>Blue Candidate</label><input type="text" id="nameBlue" class="name-input blue" value="Harris"></div>
+    <div class="input-group"><label>Yellow Candidate</label><input type="text" id="nameYellow" class="name-input yellow" value="Other"></div>
+    <div class="input-group"><label>Red Candidate</label><input type="text" id="nameRed" class="name-input red" value="Trump"></div>
+    
+    <div class="toggle-container"><label><input type="checkbox" id="toggleDNV"> Consider 'Did Not Vote' as candidate</label></div>
+    
+    <div class="summary-container">
+        <div class="summary-title">Mobilized DNV Voters</div>
+        <div class="summary-line"><span style="color: var(--blue);">To Blue:</span> <span id="sum-mob-b">0</span></div>
+        <div class="summary-line"><span style="color: var(--red);">To Red:</span> <span id="sum-mob-r">0</span></div>
+        <div class="summary-total"><span>Total:</span> <span id="sum-mob-total">0</span></div>
+    </div>
+
+    <button id="minShiftBlueBtn">Min Flip to Blue</button>
+    <button id="flipAllBlueBtn">Flip ALL Red to Blue</button>
+    <button id="resetBtn">Reset to Actual 2024</button>
+</div>
+
+<div id="main">
+    <div id="header-area">
+        <h1 id="main-title">What Would Happen If People Actually Voted Instead of Staying Home</h1>
+        <h2 id="overall-winner">Current Winner: Calculating...</h2>
+    </div>
+
+    <div id="ribbon">
+        <div id="rib-blue" class="ribbon-segment seg-blue"></div>
+        <div id="rib-yellow" class="ribbon-segment seg-yellow"></div>
+        <div id="rib-white" class="ribbon-segment seg-white"></div>
+        <div id="rib-red" class="ribbon-segment seg-red"></div>
+    </div>
+    
+    <div id="map-container">
+        <svg id="us-map" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <pattern id="hatch-split" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                    <rect width="8" height="8" fill="var(--blue)"/><rect width="4" height="8" fill="var(--red)"/>
+                </pattern>
+            </defs>
+            <g id="states-group"></g>
+        </svg>
+    </div>
+
+    <div id="table-container"></div>
+</div>
+
+<div id="tooltip"><div id="tt-line1"></div><div id="tt-candidates"></div></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
