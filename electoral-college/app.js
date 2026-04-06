@@ -148,7 +148,7 @@ function bindSliderPhysics(stateName, container) {
 }
 
 function renderMap() {
-    d3.json("https://cdnjs.cloudflare.com/ajax/libs/us-atlas@3/states-albers-10m.json").then(us => {
+    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json").then(us => {
         d3.select("#states-group").selectAll("path")
             .data(topojson.feature(us, us.objects.states).features)
             .enter().append("path").attr("class", "state-path").attr("d", d3.geoPath())
