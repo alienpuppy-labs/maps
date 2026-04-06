@@ -61,6 +61,7 @@
         #flipAllBlueBtn:hover { background-color: #eff6ff !important; }
         #minShiftBlueBtn { border-color: var(--blue); color: var(--text-light); background-color: var(--blue); margin-top: auto;}
         #minShiftBlueBtn:hover { background-color: #1e40af !important; }
+        .year-stack { display: flex; flex-direction: column; gap: 5px; margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 15px;}
 
         /* --- MAIN & HEADER --- */
         #main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-color); }
@@ -138,14 +139,14 @@
         .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f9fafb; }
     </style>
 
-    <script src="data.js"></script>
+    <script src="data-2024.js"></script>
 </head>
 <body>
 
 <div id="sidebar">
-    <div class="input-group"><label>Blue Candidate</label><input type="text" id="nameBlue" class="name-input blue" value="Harris"></div>
-    <div class="input-group"><label>Yellow Candidate</label><input type="text" id="nameYellow" class="name-input yellow" value="Other"></div>
-    <div class="input-group"><label>Red Candidate</label><input type="text" id="nameRed" class="name-input red" value="Trump"></div>
+    <div class="input-group"><label>Blue Candidate</label><input type="text" id="nameBlue" class="name-input blue"></div>
+    <div class="input-group"><label>Yellow Candidate</label><input type="text" id="nameYellow" class="name-input yellow"></div>
+    <div class="input-group"><label>Red Candidate</label><input type="text" id="nameRed" class="name-input red"></div>
     
     <div class="toggle-container"><label><input type="checkbox" id="toggleDNV"> Consider 'Did Not Vote' as candidate</label></div>
     
@@ -156,9 +157,13 @@
         <div class="summary-total"><span>Total:</span> <span id="sum-mob-total">0</span></div>
     </div>
 
-    <button id="minShiftBlueBtn">Min Flip to Blue</button>
+    <button id="minShiftBlueBtn" style="margin-top:10px;">Min Flip to Blue</button>
     <button id="flipAllBlueBtn">Flip ALL Red to Blue</button>
-    <button id="resetBtn">Reset to Actual 2024</button>
+
+    <div class="year-stack">
+        <button id="load2024Btn">Load 2024 Results</button>
+        <button id="load2020Btn" disabled title="Data coming soon">Load 2020 Results</button> 
+    </div>
 </div>
 
 <div id="main">
