@@ -128,15 +128,17 @@
         .btn-mini.blue-btn:hover { background: #eff6ff; }
         .btn-mini:disabled { opacity: 0.3; cursor: not-allowed; }
         
-        /* The DNV Slider */
-        .slider-container { position: relative; height: 28px; border-radius: 14px; background: var(--border-color); display: flex; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        /* --- SLIDERS --- */
+        .sliders-wrapper { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .slider-container { position: relative; height: 16px; border-radius: 4px; background: var(--border-color); display: flex; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
         .slider-segment { position: absolute; height: 100%; top: 0; }
         .seg-blue { background-color: var(--blue); left: 0; z-index: 1; }
         .seg-white { background-color: var(--white); z-index: 0; }
+        .seg-yellow { background-color: var(--yellow); z-index: 0; }
         .seg-red { background-color: var(--red); right: 0; z-index: 1; }
         
-        .slider-handle { position: absolute; top: 0; width: 14px; height: 28px; background: #ffffff; border: 2px solid #9ca3af; cursor: ew-resize; transform: translateX(-7px); z-index: 2; border-radius: 4px; box-shadow: -1px 0 4px rgba(0,0,0,0.15); }
-        .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f9fafb; }
+        .slider-handle { position: absolute; top: 0; width: 12px; height: 16px; background: #ffffff; border: 1px solid #9ca3af; cursor: ew-resize; transform: translateX(-6px); z-index: 2; border-radius: 2px; box-shadow: -1px 0 3px rgba(0,0,0,0.2); }
+        .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f3f4f6; }
     </style>
 
     <script src="data-2024.js"></script>
