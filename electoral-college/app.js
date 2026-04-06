@@ -227,4 +227,9 @@ document.getElementById('load2016Btn').addEventListener('click', () => { if (typ
 document.getElementById('toggleDNV').addEventListener('change', (e) => { dnvIsCandidate = e.target.checked; updateCalculations(); });
 document.querySelectorAll('.name-input').forEach(i => i.addEventListener('input', updateCalculations));
 
+// --- MODAL EVENT LISTENERS ---
+document.getElementById('helpBtn').addEventListener('click', () => document.getElementById('helpModal').style.display = 'flex');
+document.getElementById('closeModalBtn').addEventListener('click', () => document.getElementById('helpModal').style.display = 'none');
+document.getElementById('gotItBtn').addEventListener('click', () => document.getElementById('helpModal').style.display = 'none');
+
 window.addEventListener('load', () => { setupRibbonTooltips(); renderMap(); if (typeof data_2024 !== 'undefined') loadElectionProfile(data_2024); });
