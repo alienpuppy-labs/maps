@@ -1,12 +1,36 @@
 // app.js
 
 let appState = {};
+let activeProfile = null; // Stores the currently loaded election data
+
 const splitStates = ["Maine", "Nebraska"];
 const colors = { blue: 'var(--blue)', yellow: 'var(--yellow)', white: 'var(--white)', red: 'var(--red)' };
 let dnvIsCandidate = false;
 
+// --- NEW MULTI-YEAR LOADER ---
+function loadElectionProfile(profileData) {
+    activeProfile = profileData;
+
+    // 1. Update Candidate Names
+    document.getElementById('nameBlue').value = activeProfile.meta.blue.name;
+    document.getElementById('nameYellow').value = activeProfile.meta.yellow.name;
+    document.getElementById('nameRed').value = activeProfile.meta.red.name;
+
+    // 2. Dynamically Inject CSS Colors 
+    // This instantly updates the map, buttons, ribbons, and badges
+    document.documentElement.style.setProperty('--blue', activeProfile.meta.blue.color);
+    document.documentElement.style.setProperty('--yellow', activeProfile.meta.yellow.color);
+    document.documentElement.style.setProperty('--red', activeProfile.meta.red.color);
+
+    // 3. Reboot the Engine
+    initData();
+    renderTable();
+    updateCalculations();
+}
+
 function initData() {
-    for (const [state, data] of Object.entries(rawData2024)) {
+    // Note: Now reading from activeProfile.states instead of rawData2024
+    for (const [state, data] of Object.entries(activeProfile.states)) {
         const [ev, b, y, w, r] = data;
         appState[state] = {
             ev: ev, baseB: b, baseY: y, baseW: w, baseR: r,
@@ -18,7 +42,7 @@ function initData() {
 
 function renderTable() {
     const container = document.getElementById('table-container');
-    container.innerHTML = ''; // This is safe, we are just clearing static HTML
+    container.innerHTML = ''; 
 
     Object.keys(appState).sort().forEach(stateName => {
         const s = appState[stateName];
@@ -34,7 +58,6 @@ function renderTable() {
         const row = document.createElement('div');
         row.className = 'state-row';
         
-        // Use innerHTML here because there is NO user input being injected, only hardcoded structural HTML and verified mathematical variables
         row.innerHTML = `
             <div class="winner-indicator" id="win-ind-${safeId}"></div>
             <div>
@@ -125,7 +148,7 @@ function bindSliderPhysics(stateName, container) {
 }
 
 function renderMap() {
-    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json").then(us => {
+    d3.json("https://cdnjs.cloudflare.com/ajax/libs/us-atlas/3.0.1/states-albers-10m.json").then(us => {
         d3.select("#states-group").selectAll("path")
             .data(topojson.feature(us, us.objects.states).features)
             .enter().append("path").attr("class", "state-path").attr("d", d3.geoPath())
@@ -211,13 +234,12 @@ function updateCalculations() {
         seg.textContent = totals[col] > 15 ? totals[col] : ''; 
     });
 
-    // --- SECURITY FIX 1: Safe DOM manipulation instead of innerHTML ---
     const bName = document.getElementById('nameBlue').value || "Blue";
     const yName = document.getElementById('nameYellow').value || "Yellow";
     const rName = document.getElementById('nameRed').value || "Red";
     
     const winnerHeader = document.getElementById('overall-winner');
-    winnerHeader.innerHTML = ''; // Safe to clear
+    winnerHeader.innerHTML = ''; 
     const winSpan = document.createElement('span');
     winSpan.style.fontWeight = 'bold';
 
@@ -240,7 +262,7 @@ function updateCalculations() {
     winnerHeader.appendChild(winSpan);
 }
 
-// Ribbon Tooltips (Security Fix 1)
+// Ribbon Tooltips
 document.querySelectorAll('.ribbon-segment').forEach(seg => {
     seg.addEventListener('mousemove', (e) => {
         const id = seg.id.replace('rib-', '');
@@ -260,7 +282,7 @@ document.querySelectorAll('.ribbon-segment').forEach(seg => {
         
         const badge = document.createElement('div');
         badge.className = 'tt-badge';
-        badge.style.backgroundColor = colors[id];
+        badge.style.backgroundColor = document.documentElement.style.getPropertyValue(`--${id}`) || `var(--${id})`;
         badge.style.color = (id === 'white' || id === 'yellow') ? 'black' : 'white';
         badge.textContent = `${evCount} EVs`;
         
@@ -283,12 +305,11 @@ function showTooltip(event, d) {
     const cands = document.getElementById('tt-candidates'); 
     cands.innerHTML = '';
     
-    // Security Fix 1: Safe badge creation
     const createBadge = (n, ev, col) => {
         if (ev <= 0) return;
         const badge = document.createElement('div');
         badge.className = 'tt-badge';
-        badge.style.backgroundColor = colors[col];
+        badge.style.backgroundColor = document.documentElement.style.getPropertyValue(`--${col}`) || `var(--${col})`;
         badge.style.color = (col === 'white' || col === 'yellow') ? 'black' : 'white';
         badge.textContent = `${n} (${ev})`;
         cands.appendChild(badge);
@@ -305,9 +326,15 @@ function showTooltip(event, d) {
 }
 function hideTooltip() { tooltip.style.display = 'none'; }
 
-// Global Event Listeners
-document.getElementById('resetBtn').addEventListener('click', () => { 
-    initData(); renderTable(); updateCalculations(); 
+// --- GLOBAL EVENT LISTENERS ---
+
+// BOILERPLATE: Loading Election Years
+document.getElementById('load2024Btn').addEventListener('click', () => { 
+    if (typeof data_2024 !== 'undefined') loadElectionProfile(data_2024);
+});
+
+document.getElementById('load2020Btn').addEventListener('click', () => { 
+    if (typeof data_2020 !== 'undefined') loadElectionProfile(data_2020);
 });
 
 document.getElementById('flipAllBlueBtn').addEventListener('click', () => {
@@ -387,7 +414,8 @@ document.getElementById('minShiftBlueBtn').addEventListener('click', () => {
 document.getElementById('toggleDNV').addEventListener('change', (e) => { dnvIsCandidate = e.target.checked; updateCalculations(); });
 document.querySelectorAll('.name-input').forEach(i => i.addEventListener('input', updateCalculations));
 
-// Boot App
-initData(); 
-renderTable(); 
+// BOOT: Load 2024 by Default
 renderMap();
+if (typeof data_2024 !== 'undefined') {
+    loadElectionProfile(data_2024);
+}
