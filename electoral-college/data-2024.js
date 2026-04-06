@@ -1,6 +1,13 @@
 // data.js
 
-const rawData2024 = {
+const data_2024 = {
+    meta: {
+        year: "2024",
+        blue: { name: "Harris", color: "#1d4ed8" }, // Standard Blue
+        yellow: { name: "Other", color: "#f59e0b" }, // Standard Yellow
+        red: { name: "Trump", color: "#b91c1c" }    // Standard Red
+    },
+    states: {
     "Alabama": [9, 776000, 0, 1604000, 1471000],
     "Alaska": [3, 138000, 0, 207000, 189000],
     "Arizona": [11, 1550000, 0, 2078000, 1760000],
@@ -52,4 +59,5 @@ const rawData2024 = {
     "West Virginia": [4, 213000, 0, 612000, 535000],
     "Wisconsin": [10, 1665000, 0, 1034000, 1695000],
     "Wyoming": [3, 69000, 0, 165000, 192000]
+    }
 };
