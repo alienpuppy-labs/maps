@@ -5,9 +5,9 @@ const data_2016 = {
         year: "2016",
         sourceName: "Federal Election Commission (FEC) Official 2016 Results",
         sourceUrl: "https://www.fec.gov/introduction-campaign-finance/election-and-voting-information/",
-        blue: { name: "Clinton", color: "#3b82f6" }, 
+        blue: { name: "Clinton", color: "#1d4ed8" },
         yellow: { name: "Other", color: "#eab308" },
-        red: { name: "Trump", color: "#ef4444" }  
+        red: { name: "Trump", color: "#b91c1c" }
     },
     // Format: [Electoral Votes, Blue (Clinton), Yellow (Other), White (DNV), Red (Trump)]
     states: {
