@@ -35,26 +35,59 @@ function initData() {
 
 function updateCalculations() {
     let totals = { blue: 0, yellow: 0, white: 0, red: 0 };
+    
+    // Global Summary Trackers
     let globalMobB = 0; let globalMobR = 0;
+    let globalDrainedDNV = 0; let globalDrainedYEL = 0;
+    let itemizedHTML = '';
 
     for (const [stateName, s] of Object.entries(appState)) {
         const safeId = stateName.replace(/\s+/g, '-');
         s.evAlloc = { blue: 0, yellow: 0, white: 0, red: 0 };
 
+        // 1. Calculate how many left the DNV and Yellow pools
         let mobDnvB = s.baseW * s.pLeft; let mobDnvR = s.baseW * (1 - s.pRight);
         let mobYelB = s.baseY * s.yLeft; let mobYelR = s.baseY * (1 - s.yRight);
         
-        let totalMobB = mobDnvB + mobYelB; let totalMobR = mobDnvR + mobYelR;
-        globalMobB += totalMobB; globalMobR += totalMobR;
+        let stateDrainedDNV = mobDnvB + mobDnvR;
+        let stateDrainedYEL = mobYelB + mobYelR;
 
+        // 2. Calculate how many arrived at the Blue and Red pools
+        let totalMobB = mobDnvB + mobYelB; 
+        let totalMobR = mobDnvR + mobYelR;
+        
+        // 3. Update Global Trackers
+        globalMobB += totalMobB; 
+        globalMobR += totalMobR;
+        globalDrainedDNV += stateDrainedDNV;
+        globalDrainedYEL += stateDrainedYEL;
+
+        // 4. Update the Active Voter counts
         let activeB = s.baseB + totalMobB; let activeR = s.baseR + totalMobR;
-        let activeW = s.baseW - mobDnvB - mobDnvR; let activeY = s.baseY - mobYelB - mobYelR;
+        let activeW = s.baseW - stateDrainedDNV; let activeY = s.baseY - stateDrainedYEL;
 
+        // 5. Build the Itemized HTML if this state has movement
+        if (totalMobB > 0 || totalMobR > 0) {
+            itemizedHTML += `
+                <div class="itemized-row">
+                    <strong title="${stateName}">${stateName}</strong>
+                    <span>
+                        ${totalMobB > 0 ? `<span style="color:var(--blue)">+${Math.round(totalMobB).toLocaleString()}</span> ` : ''}
+                        ${totalMobR > 0 ? `<span style="color:var(--red)">+${Math.round(totalMobR).toLocaleString()}</span>` : ''}
+                    </span>
+                </div>`;
+        }
+
+        // 6. Update Local Table UI
         const lblMobB = document.getElementById(`mob-b-${safeId}`);
+        const lblMobY = document.getElementById(`mob-y-${safeId}`);
         const lblMobR = document.getElementById(`mob-r-${safeId}`);
+        
         if (lblMobB) lblMobB.textContent = `+${Math.round(totalMobB).toLocaleString()}`;
+        if (lblMobY) lblMobY.textContent = `-${Math.round(stateDrainedYEL).toLocaleString()}`;
         if (lblMobR) lblMobR.textContent = `+${Math.round(totalMobR).toLocaleString()}`;
 
+        // 7. Electoral Vote Math
         if (splitStates.includes(stateName)) {
             let activeSum = dnvIsCandidate ? (activeB + activeY + activeW + activeR) : (activeB + activeY + activeR);
             if (activeSum === 0) activeSum = 1;
@@ -93,8 +126,12 @@ function updateCalculations() {
         }
     }
 
+    // Update the Sidebar Dashboard
+    document.getElementById('itemized-shifts').innerHTML = itemizedHTML || '<div style="color:var(--text-muted); text-align:center;">No shifts applied yet</div>';
     document.getElementById('sum-mob-b').textContent = Math.round(globalMobB).toLocaleString();
     document.getElementById('sum-mob-r').textContent = Math.round(globalMobR).toLocaleString();
+    document.getElementById('sum-mob-dnv').textContent = Math.round(globalDrainedDNV).toLocaleString();
+    document.getElementById('sum-mob-yel').textContent = Math.round(globalDrainedYEL).toLocaleString();
     document.getElementById('sum-mob-total').textContent = Math.round(globalMobB + globalMobR).toLocaleString();
 
     ['blue', 'yellow', 'white', 'red'].forEach(col => {
@@ -187,8 +224,6 @@ document.getElementById('minShiftBlueBtn').addEventListener('click', () => {
 document.getElementById('toggleDNV').addEventListener('change', (e) => { dnvIsCandidate = e.target.checked; updateCalculations(); });
 document.querySelectorAll('.name-input').forEach(i => i.addEventListener('input', updateCalculations));
 
-// --- BOOT SEQUENCE ---
-// We wait for the HTML and all scripts to load before turning the engine on
 window.addEventListener('load', () => {
     setupRibbonTooltips();
     renderMap();

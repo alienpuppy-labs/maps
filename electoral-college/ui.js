@@ -11,8 +11,11 @@ function renderTable() {
         
         const castTotal = s.baseB + s.baseY + s.baseR;
         const pctB = castTotal > 0 ? ((s.baseB / castTotal) * 100).toFixed(1) : 0;
+        const pctY = castTotal > 0 ? ((s.baseY / castTotal) * 100).toFixed(1) : 0;
         const pctR = castTotal > 0 ? ((s.baseR / castTotal) * 100).toFixed(1) : 0;
+        
         const fmtB = s.baseB.toLocaleString();
+        const fmtY = s.baseY.toLocaleString();
         const fmtR = s.baseR.toLocaleString();
 
         const row = document.createElement('div');
@@ -26,10 +29,12 @@ function renderTable() {
             </div>
             <div class="fixed-votes">
                 <div class="vote-line"><span style="color: var(--blue)">Blue:</span> <span>${fmtB} (${pctB}%)</span></div>
+                <div class="vote-line"><span style="color: var(--yellow); text-shadow: 0 0 1px rgba(0,0,0,0.2);">Yel:</span> <span>${fmtY} (${pctY}%)</span></div>
                 <div class="vote-line"><span style="color: var(--red)">Red:</span> <span>${fmtR} (${pctR}%)</span></div>
             </div>
             <div class="mob-votes">
                 <div class="vote-line"><span style="color: var(--blue)">Shift B:</span> <span id="mob-b-${safeId}">+0</span></div>
+                <div class="vote-line"><span style="color: var(--yellow); text-shadow: 0 0 1px rgba(0,0,0,0.2);">Shift Y:</span> <span id="mob-y-${safeId}">-0</span></div>
                 <div class="vote-line"><span style="color: var(--red)">Shift R:</span> <span id="mob-r-${safeId}">+0</span></div>
             </div>
             <div class="state-actions">
