@@ -124,9 +124,15 @@
         .seg-red { background-color: var(--red); right: 0; z-index: 1; }
         .slider-handle { position: absolute; top: 0; width: 12px; height: 16px; background: #ffffff; border: 1px solid #9ca3af; cursor: ew-resize; transform: translateX(-6px); z-index: 2; border-radius: 2px; box-shadow: -1px 0 3px rgba(0,0,0,0.2); }
         .slider-handle:hover, .slider-handle:active { border-color: #4b5563; background: #f3f4f6; }
+
+        #source-container { text-align: center; padding: 0 40px 10px 40px; font-size: 0.85em; color: var(--text-muted); }
+        .source-link { color: var(--text-muted); text-decoration: underline; transition: color 0.2s; }
+        .source-link:hover { color: var(--blue); }
     </style>
 
     <script src="data-2024.js"></script>
+    <script src="data-2020.js"></script>
+    <script src="data-2016.js"></script>
 </head>
 <body>
 
@@ -154,7 +160,8 @@
 
     <div class="year-stack">
         <button id="load2024Btn">Load 2024 Results</button>
-        <button id="load2020Btn" disabled title="Data coming soon">Load 2020 Results</button> 
+        <button id="load2020Btn">Load 2020 Results</button> 
+        <button id="load2016Btn">Load 2016 Results</button>
     </div>
 </div>
 
@@ -181,6 +188,9 @@
             <g id="states-group"></g>
         </svg>
     </div>
+
+    <div id="source-container"></div>
+    
     <div id="table-container"></div>
 </div>
 

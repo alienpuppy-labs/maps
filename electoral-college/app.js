@@ -8,6 +8,7 @@ let dnvIsCandidate = false;
 
 function loadElectionProfile(profileData) {
     activeProfile = profileData;
+    
     document.getElementById('nameBlue').value = activeProfile.meta.blue.name;
     document.getElementById('nameYellow').value = activeProfile.meta.yellow.name;
     document.getElementById('nameRed').value = activeProfile.meta.red.name;
@@ -15,6 +16,24 @@ function loadElectionProfile(profileData) {
     document.documentElement.style.setProperty('--blue', activeProfile.meta.blue.color);
     document.documentElement.style.setProperty('--yellow', activeProfile.meta.yellow.color);
     document.documentElement.style.setProperty('--red', activeProfile.meta.red.color);
+
+    // --- NEW: Safely construct the source link ---
+    const sourceDiv = document.getElementById('source-container');
+    sourceDiv.innerHTML = ''; // Clear previous link
+    
+    if (activeProfile.meta.sourceName && activeProfile.meta.sourceUrl) {
+        const textSpan = document.createElement('span');
+        textSpan.textContent = "Data Source: ";
+        
+        const linkNode = document.createElement('a');
+        linkNode.href = activeProfile.meta.sourceUrl;
+        linkNode.target = "_blank"; // Opens in new tab
+        linkNode.className = "source-link";
+        linkNode.textContent = activeProfile.meta.sourceName;
+        
+        sourceDiv.appendChild(textSpan);
+        sourceDiv.appendChild(linkNode);
+    }
 
     initData();
     renderTable();
@@ -159,6 +178,7 @@ function updateCalculations() {
 // --- GLOBAL EVENT LISTENERS ---
 document.getElementById('load2024Btn').addEventListener('click', () => { if (typeof data_2024 !== 'undefined') loadElectionProfile(data_2024); });
 document.getElementById('load2020Btn').addEventListener('click', () => { if (typeof data_2020 !== 'undefined') loadElectionProfile(data_2020); });
+document.getElementById('load2016Btn').addEventListener('click', () => { if (typeof data_2016 !== 'undefined') loadElectionProfile(data_2016); });
 
 document.getElementById('flipAllBlueBtn').addEventListener('click', () => {
     for (const [stateName, s] of Object.entries(appState)) {
