@@ -3,7 +3,7 @@
 A collection of interactive mapping tools and data visualizations built by **Alienpuppy-Labs**.
 
 ## 📍 Included Maps
-* **[Electoral College Calculator](https://alienpuppy-labs.github.io/maps/electoral-college.html)** – An interactive tool to simulate election scenarios.
+* **[Electoral College Calculator](https://alienpuppy-labs.github.io/maps/electoral-college/)** – An interactive tool to simulate election scenarios.
 * *(Upcoming)* **Geocaching Trail Map** – A custom visualization of local Santa Clara hiking trails.
 
 ## 🛠️ Usage
